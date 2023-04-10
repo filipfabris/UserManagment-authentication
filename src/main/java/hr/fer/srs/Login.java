@@ -35,7 +35,7 @@ public class Login {
             ShellExecutor myShell = new ShellExecutor( scener );
             myShell.writeln( "SRS lab 2-1.0.0v" );
 
-            myShell.writeln( "Welcome to user management database." );
+            myShell.writeln( "Welcome to user Dashboard." );
 
             Path path = Path.of( ShellExecutor.DATABASES_PATH + MANAGEMENT_DATABASE_NAME );
 

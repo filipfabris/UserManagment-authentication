@@ -52,4 +52,6 @@ public interface Environment {
 	LoginStatus userLogin(String databaseName, String username, String password) throws ShellIOException;
 
 	String forcePasswordChange(String databaseName, String username) throws ShellIOException;
+
+	OperationStatus addUserAuthorization(String databaseName, String key, String value) throws ShellIOException;
 }

@@ -1,0 +1,103 @@
+Povjerljivost i autentificirna šifra temelji se na kriptografskoj funkciji sažetka algoritma PBKDF2WithHmacSHA256 klase PBEKeySpec koji na temelju ulaznog raw teksta i salta hešira dani tekst.
+
+Na ovaj način napadaču je onemogučeno da ima gotov riječnik hesiranih lozinki i korisničkih imena, npr. da se je koristilo SHA256 samo za izračun funkcije sažetka bez salta. Napadač bi mogao pripremiti gotov riječnik, ovako mora za savku liniju ponovno računati heševe.
+
+Linija baze podataka:
+DQ5znwZzGw0mXSUeA40oxsz9mCscJKS6TQPOA1Di0aU=####LBWJK7LDvdxey/3LzN+VhjbUYxqJxm24WA3RiK/TQozet3Di20neKH43VwkQ2GbV
+
+Opis:
+username%##%force=true####username%##%force=lozinka
+
+Na temelju lozinke i korisničkog imena koji us zastičeni ostvarena je autentifikacija subjekta
+
+Provjera ispravnosti lozinke:
+korisnik unosi lozinku u terminal, ali se ta lozinka ne prikazuje te je time napadač koji bi imao nekontrolirani pristup računalu ne može viditi lozinku.
+
+Korisnik upiše korisničko ime i lozinku
+Poslužitelj za korisnika dohvaća salta te izračunava sažetak lozinke i salta
+Uspoređuje izračunatu vrijednost i pohranjenu vrijednost
+Ako su verzije iste, tada je korisnik (osoba) dokazala da je vlasnik korisničkog imena
+
+Napad pogađanjem otežan zbog uvođenja minimalne kompleksnosti lozinke od 8 znakova, barem jedno malo, veliko slovo, barem jedna broj. Sprečavanje pogađanja lozinki.
+
+Nije implementiral sustav tako da ima sigurnosnu ograničenje tako da nakon svakog neuspjelog pokušaja upisivanja lozinke povećava se vrijeme čekanja. Rezultat ograničenja je da je jako smanjen broj pokušaja u jedinici vremena.
+Ovo bi se odnosilo na sprečavanje online pogađanja lozinki. Budući da napadač ovdje ima pristup bazi lozniki koje moraju biti spremeljene logalno te također ima pristup cijelom programu tako da vidi algoritme i načine spremanaj lozinki ova implementaciaj bi bila skroz nepotrebna te bi čak i krajnjim korisnicima otežavala rad.
+
+Administartor korisnicima može forsirati promjenen.
+Nije implementirana da se traži periodička promjena lozinke, ali je implmentirano forsirana promjena lozinki tako da admin user može svim korisnicima postaviti da moraju promjeniti svoju lozinku
+
+Zaboravljene lozinke, helpdesk administratoru. Admin napravi promjenu lozinke i postavi forsiranje promjene lozinke kod sljedeće prijave.
+
+Prijenos lozinki preko mreže - program nema pristup internetu.
+ 
+Ukoliko napadač odluči promjeniti hesirani dio korisničkog imena sa nekim drugim korisnikom alat javlja grešku da je linija izmjenena, to je ostvareno da se osim lozinke kriptira i korisničko ime sa lozinkom tako da nije moguće mijenjati heširati dio da pronalaženje korisničkog imena.
+
+Integritet same baze/file bi se mogao ostavriti tako da postoji više kopija iste datoke na udaljenim zaštičenim računalima.
+Prije ulogiravanja provjeravao bi se integrietet same baze tako da se izračunava hash vrijednost lokalne baze sa hash vrijednostima baza podataka koje se nalaze na sigurnim serverima.
+Na primjer imamo lokalnu bazu i dvije server baze na dva poslužitelja. Sva tri subjekta moraju imati isti hash baze lozinki i time si međusobno potvrđuju integritet.
+Naravno mora biti ostvarena i sinkronizacija.
+
+
+Managment:
+java -cp target/autentification-1.0-SNAPSHOT.jar hr.fer.srs.UserManagement
+
+//Dodavanje korisnika
+add korisnik
+Abdada13K //Barem 8 zakova, barem jedno malo, veliko slovo i broj
+Abdada13K //Sakriven je unos u terminalu
+
+add ff
+hdasdsa81A
+hdasdsa81A
+
+
+
+
+
+Korisnika:
+java -cp target/autentification-1.0-SNAPSHOT.jar hr.fer.srs.Login
+
+login nepostoji
+//Korisnik se ne nalazi u bazi
+
+login korisnik
+Abdada13K
+//Uspjeh
+
+login korisnik
+kriva lozinka
+//Neuspjeh
+
+login ff
+hdasdsa81A
+//Uspjeh
+
+
+
+
+Managment:
+java -cp target/autentification-1.0-SNAPSHOT.jar hr.fer.srs.UserManagement
+
+//forsiranje promjene lozinke
+forcepass korisnik
+
+passwd ff
+dasdsa7321ADS
+dasdsa7321ADS
+
+
+
+
+Korištenje alata za korisnika:
+java -cp target/autentification-1.0-SNAPSHOT.jar hr.fer.srs.Login
+
+login korisnik
+Abdada13K
+//Uspjeh, forsirana lozinka, unesi novu
+jdsadsa3121DSA
+jdsadsa3121DSA
+//Uspjeh logina i promjene
+
+login ff
+hdasdsa81A //Admin je u međuvremenu promjenio lozinku
+//Neuspjeh

@@ -12,8 +12,10 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.AlgorithmParameterSpec;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.util.Base64;
 import java.util.List;
@@ -130,6 +132,71 @@ public class Crypto {
         sb.append( System.lineSeparator() );
 
         return sb.toString();
+    }
+
+    public static String prepareLineAutentificator( String key, String value){
+        MessageDigest digest;
+        String inputForEncryption = key + "=" + value;
+        byte[] salt = generateRandom( SALT_LENGTH );
+        byte[] encrypt;
+
+        try {
+            PBEKeySpec spec = new PBEKeySpec( inputForEncryption.toCharArray(), salt, ITERATION_COUNT, AES_KEY_LENGTH);
+            encrypt  = SecretKeyFactory.getInstance(SECRET_KEY_FACTORY_ALGORITHM).generateSecret(spec).getEncoded();
+            digest = MessageDigest.getInstance("SHA-256");
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            return null;
+        }
+        
+        ByteBuffer byteBuffer = ByteBuffer.allocate( salt.length + encrypt.length );
+        byteBuffer.put( salt );
+        byteBuffer.put( encrypt );
+        byte[] data = byteBuffer.array();
+        byte[] EncodedHashKey = digest.digest(key.getBytes(StandardCharsets.UTF_8));
+
+
+        StringBuilder sb = new StringBuilder();
+        sb.append( Base64.getEncoder().encodeToString( EncodedHashKey ) );
+        sb.append( Crypto.SEPARATOR );
+        sb.append( Base64.getEncoder().encodeToString( data ) );
+        sb.append( System.lineSeparator() );
+
+        return sb.toString();
+    }
+
+    public static boolean checkAuthorization(String key, String value, String line){
+        line = line.trim();
+
+        //Given line
+        byte[] lineEncription = Base64.getDecoder().decode(line);
+        //salt is first 16 bytes
+        byte[] salt = new byte[SALT_LENGTH];
+        System.arraycopy( lineEncription, 0, salt, 0, SALT_LENGTH );
+
+
+        //Calculated with given salt
+        byte[] encrypt;
+        String inputForEncryption = key + "=" + value;
+        try {
+            PBEKeySpec spec = new PBEKeySpec( inputForEncryption.toCharArray(), salt, ITERATION_COUNT, AES_KEY_LENGTH);
+            encrypt  = SecretKeyFactory.getInstance(SECRET_KEY_FACTORY_ALGORITHM).generateSecret(spec).getEncoded();
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
+            e.printStackTrace();
+            return false;
+        }
+
+        ByteBuffer byteBuffer = ByteBuffer.allocate( salt.length + encrypt.length );
+        byteBuffer.put( salt );
+        byteBuffer.put( encrypt );
+        byte[] data = byteBuffer.array();
+        String calculated = Base64.getEncoder().encodeToString( data );
+
+        if (calculated.equals(line)){
+            return true;
+        }
+
+        return false;
     }
 
     public static boolean checkPassword(Environment env, String databaseName, String password) throws ShellIOException {

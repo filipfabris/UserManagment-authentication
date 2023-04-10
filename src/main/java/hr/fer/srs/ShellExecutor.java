@@ -328,6 +328,86 @@ public class ShellExecutor implements Environment, DatabaseExecutor {
 
     }
 
+
+
+
+
+
+    @Override
+    public OperationStatus addUserAuthorization(String databaseName, String key, String value) throws ShellIOException {
+        List<String> listDatabases = this.listDatabases();
+        Map<String, String> passwordMap;
+
+
+        if (listDatabases.contains( databaseName ) == false) {
+            this.writeln( "Database with name" + databaseName + " does not exists" );
+            return OperationStatus.FAILURE;
+        }
+
+        List<String> input = this.readDatabaseAsList( databaseName );
+        passwordMap = new LinkedHashMap<>();
+
+        for (String line : input) {
+            String[] keyValue = line.split( Crypto.SEPARATOR );
+            passwordMap.put( keyValue[0], keyValue[1] );
+        }
+
+
+        String hexKey = null;
+        try {
+            MessageDigest digest = MessageDigest.getInstance( "SHA-256" );
+            byte[] EncodedHashKey = digest.digest( key.getBytes( StandardCharsets.UTF_8 ) );
+            hexKey = Base64.getEncoder().encodeToString( EncodedHashKey );
+        } catch (NoSuchAlgorithmException e) {
+            return null;
+        }
+
+        String entryToAdd = Crypto.prepareLineAutentificator(key, value);
+        if (entryToAdd == null) {
+            this.writeln( "Failure while converting to hex" );
+            return OperationStatus.FAILURE;
+        }
+
+        String hexLine = passwordMap.get( hexKey );
+        String[] keyValue = entryToAdd.split( Crypto.SEPARATOR );
+        if (hexLine != null) {
+            passwordMap.put( keyValue[0], keyValue[1] ); //Overidas previous key
+
+            //Write it to database
+            StringBuilder sb = new StringBuilder();
+            for (Map.Entry<String, String> entry : passwordMap.entrySet()) {
+                String lineToBeAdded = entry.getKey() + Crypto.SEPARATOR + entry.getValue().trim();
+                sb.append( lineToBeAdded ).append( System.lineSeparator() );
+            }
+
+            try {
+                this.writeDatabase( databaseName, null, sb.toString(), false );
+            } catch (ShellIOException e) {
+                return OperationStatus.FAILURE;
+            }
+        } else {
+            //Entry does not exists, just append database
+            try {
+                this.writeDatabase( databaseName, null, entryToAdd, true );
+            } catch (ShellIOException e) {
+                return OperationStatus.FAILURE;
+            }
+        }
+
+        this.setMapInUse( databaseName ); //Update map in use
+        return OperationStatus.SUCCESS;
+
+    }
+
+
+
+
+
+
+
+
+
+
     @Override
     public String getEntry(String databaseName, String password, String key) throws ShellIOException {
         List<String> listDatabases = this.listDatabases();
@@ -420,9 +500,11 @@ public class ShellExecutor implements Environment, DatabaseExecutor {
         //Username has in format username=true or username=false, true false is for force password change
         String hexLine = passwordMap.get( hexKeyNoForceChange ); //Get without force change
         hexKey = hexKeyNoForceChange;
+        username = username1;
         if (hexLine == null) {
             hexLine = passwordMap.get( hexKeyYesForceChange ); //Get without force change
             hexKey = hexKeyYesForceChange; //Set key to yes force change
+            username = username2;
         }
 
         if (hexLine == null) {
@@ -432,13 +514,13 @@ public class ShellExecutor implements Environment, DatabaseExecutor {
 //        String[] flagLines = hexLine.split( UserManagement.FORCE_PASS_SEPARATOR );
 
         try {
-            String decriptedvalue = Crypto.lineDecryption( password, hexLine );
-            String[] values = decriptedvalue.split( "=" );
+            boolean decriptedvalue1 = Crypto.checkAuthorization( username1, password, hexLine );
+            boolean decriptedvalue2 = Crypto.checkAuthorization( username2, password, hexLine );
 
-//            if (Crypto.checkSHA( hexKey, values[0] ) == false) {
-//                this.writeln( "Lines have been changed" );
-//                exit( 0 );
-//            }
+
+            if(decriptedvalue1 == false && decriptedvalue2 == false){
+                return LoginStatus.WRONG_PASSWORD;
+            }
 
             if (hexKey.equals( hexKeyYesForceChange )) {
                 return LoginStatus.CHANGE_PASSWORD;

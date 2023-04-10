@@ -49,6 +49,7 @@ public class LoginCommand implements ShellCommand {
         env.writeln( "Enter password for user: " );
         env.write( env.getPromptSymbol().toString() + " " );
         String pass1 = env.readPasswordLine();
+//        String pass1 = env.readLine();
         userPassword = pass1;
 
 
@@ -75,9 +76,18 @@ public class LoginCommand implements ShellCommand {
         env.writeln( "Enter new password: " );
         env.write( env.getPromptSymbol().toString() + " " );
         pass1 = env.readPasswordLine();
+//        pass1 = env.readLine();
+
+        if(UtilitySharedCommand.checkPasswordComplexity( pass1 ) == false) {
+            env.writeln( "Password is not complex enough." );
+            env.writeln( "Password must contain at least one uppercase letter, one lowercase letter, one digit, one special character and must have at least 8 characters" );
+            return ShellStatus.CONTINUE;
+        }
+
         env.writeln( "Enter new password again: " );
         env.write( env.getPromptSymbol().toString() + " " );
         String pass2 = env.readPasswordLine();
+//        String pass2 = env.readLine();
 
         if(pass1.equals( pass2 ) == false) {
             env.writeln( "Passwords do not match." );
@@ -100,7 +110,7 @@ public class LoginCommand implements ShellCommand {
 
         userName = userName + UserManagement.FORCE_PASS_SEPARATOR + UserManagement.FORCE_PASS_NO;
 
-        OperationStatus operationStatus = env.putEntry( database_name, userPassword, userName, userPassword );
+        OperationStatus operationStatus = env.addUserAuthorization( database_name, userName, userPassword );
 
         if(operationStatus.equals( OperationStatus.FAILURE )) {
             return ShellStatus.CONTINUE;

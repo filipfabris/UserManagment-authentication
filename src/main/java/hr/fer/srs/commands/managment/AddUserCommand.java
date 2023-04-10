@@ -52,18 +52,19 @@ public class AddUserCommand implements ShellCommand {
         env.writeln( "Enter password for user: " );
         env.write( env.getPromptSymbol().toString() + " " );
         String pass1 = env.readPasswordLine();
+//        String pass1 = env.readLine();
 
-//        if(UtilitySharedCommand.checkPasswordComplexity( pass1 ) == false) {
-//            env.writeln( "Password is not complex enough." );
-//            env.writeln( "Password must contain at least one uppercase letter, one lowercase letter, one digit and one special character." );
-//            env.write( env.getPromptSymbol().toString() + " " );
-//            pass1 = env.readLine();
-////            pass1 = env.readPasswordLine();
-//        }
+        if(UtilitySharedCommand.checkPasswordComplexity( pass1 ) == false) {
+            env.writeln( "Password is not complex enough." );
+            env.writeln( "Password must contain at least one uppercase letter, one lowercase letter, one digit, one special character and must have at least 8 characters" );
+            return ShellStatus.CONTINUE;
+        }
 
         env.writeln( "Enter password again: " );
         env.write( env.getPromptSymbol().toString() + " " );
         String pass2 = env.readPasswordLine();
+//        String pass2 = env.readLine();
+
 
 
         if(pass1.equals( pass2 ) == false) {
@@ -77,7 +78,7 @@ public class AddUserCommand implements ShellCommand {
         String userValue = userPassword;
 
         //Operation for putting new user to database
-        OperationStatus operationStatus = env.putEntry( database_name, userPassword, userName, userValue );
+        OperationStatus operationStatus = env.addUserAuthorization( database_name, userName, userValue );
 
         if(operationStatus.equals( OperationStatus.FAILURE )) {
             return ShellStatus.CONTINUE;
